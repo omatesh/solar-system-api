@@ -1,7 +1,30 @@
-from flask import Blueprint, abort, make_response, jsonify
+from flask import Blueprint, abort, make_response, jsonify, request, Response
 # from ..models.planet import planets
 
+from app.models.planet import Planet
+from ..db import db
+
 planet_bp = Blueprint("planet_bp", __name__, url_prefix="/planets")
+
+@planet_bp.post("")
+def create_planet():
+
+    request_body = request.get_json()
+    name = request_body["name"]
+    description = request_body["description"]
+    distance = request_body["distance"]
+
+    new_planet = Planet(name=name, description=description, distance=distance)
+    db.session.add(new_planet)
+    db.session.commit()
+
+    response = {
+        "id": new_planet.id,
+        "name": new_planet.name,
+        "description": new_planet.description,
+        "distance": new_planet.distance
+    }
+    return response, 201
 
 # @planet_bp.get("")
 # def get_all_planets():

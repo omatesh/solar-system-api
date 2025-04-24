@@ -5,6 +5,7 @@ class Planet(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str]
     description: Mapped[str]
+    distance: Mapped[str]
 
 
 #     def __init__(self, id, name, description, distance):
