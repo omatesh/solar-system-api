@@ -6,6 +6,7 @@ from ..db import db
 
 planet_bp = Blueprint("planet_bp", __name__, url_prefix="/planets")
 
+
 @planet_bp.post("")
 def create_planet():
 
@@ -26,6 +27,7 @@ def create_planet():
     }
     return response, 201
 
+
 @planet_bp.get("")
 def get_all_planets():
     query = db.select(Planet).order_by(Planet.id)
@@ -41,6 +43,67 @@ def get_all_planets():
         })
 
     return planets_response
+
+
+@planet_bp.get("/<planet_id>")
+def read_single_planet(planet_id):
+
+    planet = validate_planet(planet_id)
+
+    return {
+        "id": planet.id,
+        "name": planet.name,
+        "description": planet.description,
+        "distance": planet.distance
+    }
+
+@planet_bp.put("/<planet_id>")
+def update_planet(planet_id):
+
+    planet = validate_planet(planet_id)
+
+    request_body = request.get_json()
+    planet.name = request_body["name"]
+    planet.description = request_body["description"]
+    planet.distance = request_body["distance"]
+
+    db.session.commit()
+
+    return Response(status=204, mimetype="application/json")
+
+@planet_bp.delete("/<planet_id>")
+def remove_planet(planet_id):
+
+    planet = validate_planet(planet_id)
+
+    db.session.delete(planet)
+    db.session.commit()
+
+    return Response(status=204, mimetype="application/json")
+
+def validate_planet(planet_id):
+
+    try:
+        planet_id = int(planet_id)
+    except:
+        message = {
+            "message": f"Planet ID ({planet_id}) is invalid type."
+        }
+        abort(make_response(message, 400))
+
+    query = db.select(Planet).where(Planet.id == planet_id)
+    planet = db.session.scalar(query)
+
+    if not planet:
+        message = {
+            "message": f"Planet ID ({planet_id}) not found."
+        }
+
+        abort(make_response(message, 404))
+
+    return planet
+
+
 
 # @planet_bp.get("")
 # def get_all_planets():
@@ -76,7 +139,6 @@ def get_all_planets():
 #     for planet in planets:
 #         if planet.id == planet_id:
 #             return planet
-        
+
 #     response = {"message" : f"planet {planet_id} not found"}
 #     abort(make_response(response, 404))
-
