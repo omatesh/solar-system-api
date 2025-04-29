@@ -1,4 +1,5 @@
 from flask import Blueprint, abort, make_response, jsonify, request, Response
+from sqlalchemy import func
 # from ..models.planet import planets
 
 from app.models.planet import Planet
@@ -32,8 +33,10 @@ def create_planet():
 def get_all_planets():
     description_param = request.args.get("description")
     distance_param = request.args.get("distance")
+    sort_by = request.args.get("sort_by")
 
-    query = db.select(Planet).order_by(Planet.id)
+    query = sort_planets_by(sort_by)
+
     if description_param:
         query = query.where(Planet.description.ilike(f"%{description_param}%"))
 
@@ -66,6 +69,7 @@ def read_single_planet(planet_id):
         "distance": planet.distance
     }
 
+
 @planet_bp.put("/<planet_id>")
 def update_planet(planet_id):
 
@@ -80,6 +84,7 @@ def update_planet(planet_id):
 
     return Response(status=204, mimetype="application/json")
 
+
 @planet_bp.delete("/<planet_id>")
 def remove_planet(planet_id):
 
@@ -89,6 +94,7 @@ def remove_planet(planet_id):
     db.session.commit()
 
     return Response(status=204, mimetype="application/json")
+
 
 def validate_planet(planet_id):
 
@@ -113,6 +119,22 @@ def validate_planet(planet_id):
     return planet
 
 
+def sort_planets_by(sort_by):
+
+    valid_sorts = ["id", "name"]
+
+    if sort_by and sort_by in valid_sorts:
+
+        if sort_by == "id":
+            query = db.select(Planet).order_by(Planet.id)
+        elif sort_by == "name":
+            query = db.select(Planet).order_by(func.lower(Planet.name))
+
+    else:
+
+        query = db.select(Planet)
+
+    return query
 
 # @planet_bp.get("")
 # def get_all_planets():
