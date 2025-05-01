@@ -12,20 +12,18 @@ planet_bp = Blueprint("planet_bp", __name__, url_prefix="/planets")
 def create_planet():
 
     request_body = request.get_json()
-    name = request_body["name"]
-    description = request_body["description"]
-    distance = request_body["distance"]
 
-    new_planet = Planet(name=name, description=description, distance=distance)
+    try:
+        new_planet = Planet.from_dict(request_body)
+    except KeyError as error:
+        message = {
+            "message": f"Missing '{error.args[0]}' attribute"
+        }
+        abort(make_response(message, 400))
     db.session.add(new_planet)
     db.session.commit()
 
-    response = {
-        "id": new_planet.id,
-        "name": new_planet.name,
-        "description": new_planet.description,
-        "distance": new_planet.distance
-    }
+    response = new_planet.to_dict()
     return response, 201
 
 
@@ -47,12 +45,7 @@ def get_all_planets():
 
     planets_response = []
     for planet in planet:
-        planets_response.append({
-            "id": planet.id,
-            "name": planet.name,
-            "description": planet.description,
-            "distance": planet.distance
-        })
+        planets_response.append(planet.to_dict())
 
     return planets_response
 
@@ -62,12 +55,7 @@ def read_single_planet(planet_id):
 
     planet = validate_planet(planet_id)
 
-    return {
-        "id": planet.id,
-        "name": planet.name,
-        "description": planet.description,
-        "distance": planet.distance
-    }
+    return planet.to_dict()
 
 
 @planet_bp.put("/<planet_id>")
@@ -76,9 +64,16 @@ def update_planet(planet_id):
     planet = validate_planet(planet_id)
 
     request_body = request.get_json()
-    planet.name = request_body["name"]
-    planet.description = request_body["description"]
-    planet.distance = request_body["distance"]
+
+    try:
+        planet.name = request_body["name"]
+        planet.description = request_body["description"]
+        planet.distance = request_body["distance"]
+    except KeyError as error:
+        message = {
+            "message": f"Missing '{error.args[0]}' attribute"
+        }
+        abort(make_response(message, 400))
 
     db.session.commit()
 
@@ -130,8 +125,13 @@ def sort_planets_by(sort_by):
         elif sort_by == "name":
             query = db.select(Planet).order_by(func.lower(Planet.name))
 
-    else:
+    elif sort_by:
 
+        message = {
+            "message": f"Sort query {sort_by} was not recognized. Valid sort options are 'id', 'name'."
+        }
+        abort(make_response(message, 400))
+    else:
         query = db.select(Planet)
 
     return query
