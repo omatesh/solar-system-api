@@ -3,7 +3,6 @@ from flask import Flask
 
 from .db import db, migrate
 from .routes.planet_routes import planet_bp
-from .routes.moon_routes import moon_bp
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -15,6 +14,5 @@ def create_app(test_config=None):
     migrate.init_app(app, db)
     
     app.register_blueprint(planet_bp)
-    app.register_blueprint(moon_bp)
     
     return app
