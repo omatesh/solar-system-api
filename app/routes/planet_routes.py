@@ -1,12 +1,11 @@
 from flask import Blueprint, abort, make_response, jsonify, request, Response
 from sqlalchemy import func
-# from ..models.planet import planets
-
 from app.models.planet import Planet
+from app.models.moon import Moon
+from .route_utilities import validate_model
 from ..db import db
 
 planet_bp = Blueprint("planet_bp", __name__, url_prefix="/planets")
-
 
 @planet_bp.post("")
 def create_planet():
@@ -25,6 +24,29 @@ def create_planet():
 
     response = new_planet.to_dict()
     return response, 201
+
+@planet_bp.post("/<planet_id>/moons")
+def create_moon_with_planet(planet_id):
+    
+    planet = validate_model(Planet, planet_id)
+
+    request_body = request.get_json()
+
+    try:
+       new_moon = Moon.from_dict(request_body)
+    except KeyError as error:
+        message = {"message": f"Missing '{error.args[0]}' attribute."}
+        abort(make_response(message, 400))
+    
+    new_moon.planet_id = planet_id
+
+    planet.moons.append(new_moon)
+
+    db.session.add(new_moon)
+    db.session.commit()
+
+    return Response(status=201, mimetype='application/json')
+
 
 
 @planet_bp.get("")
@@ -53,10 +75,25 @@ def get_all_planets():
 @planet_bp.get("/<planet_id>")
 def read_single_planet(planet_id):
 
-    planet = validate_planet(planet_id)
+    planet = validate_model(Planet, planet_id)
 
     return planet.to_dict()
 
+@planet_bp.get("/<planet_id>/moons")
+def read_moons_with_planet(planet_id):
+
+    planet = validate_model(Planet, planet_id)
+
+    query = db.select(Moon).where(Moon.planet_id == planet_id)
+
+    moons = db.session.scalars(query)
+
+    results = []
+
+    for moon in moons:
+        results.append(moon.to_dict())
+
+    return results
 
 @planet_bp.put("/<planet_id>")
 def update_planet(planet_id):
