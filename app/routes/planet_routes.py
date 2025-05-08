@@ -37,8 +37,6 @@ def create_moon_with_planet(planet_id):
     except KeyError as error:
         message = {"message": f"Missing '{error.args[0]}' attribute."}
         abort(make_response(message, 400))
-    
-    new_moon.planet_id = planet_id
 
     planet.moons.append(new_moon)
 
